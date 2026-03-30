@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { TypeAnimation } from "react-type-animation";
 import dynamic from "next/dynamic";
-import { useAuth, useUser } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const LottieAnimation = dynamic(
   () => import('@/app/(main)/(routes)/(root)/components/ExperienceBanner/Lottie'),
@@ -12,37 +12,17 @@ const LottieAnimation = dynamic(
 
 export function ExperienceBanner() {
   const { isSignedIn } = useAuth();
-  const { user } = useUser();
-  const [role, setRole] = useState<"STUDENT" | "PYME" | null>(null);
-
-  useEffect(() => {
-    const fetchRole = async () => {
-      if (!user?.id) return;
-      try {
-        const res = await fetch(`/api/user/role?userId=${user.id}`);
-        const data = await res.json();
-        setRole(data.role);
-      } catch (error) {
-        console.error("Error fetching user role", error);
-      }
-    };
-    fetchRole();
-  }, [user]);
-
+  const { role } = useUserRole();
   const panelHref = role === "PYME" ? "/pyme" : "/student";
 
   return (
     <div className="w-full min-h-screen flex items-center justify-center px-6 md:px-12 pb-25">
       <div className="grid md:grid-cols-2 gap-12 items-center max-w-7xl w-full">
-        
-        
         <div className="flex justify-center items-center">
           <div className="w-full max-w-md">
             <LottieAnimation />
           </div>
         </div>
-
-      
         <div className="flex flex-col justify-center items-center md:items-start text-center md:text-left max-w-md mx-auto">
           <h1 className="text-2xl md:text-3xl font-semibold leading-tight text-[#0A2243] mb-6">
             Experience is built,{" "}

@@ -1,21 +1,11 @@
-"use client";
-
-import { useUser } from "@clerk/nextjs";
-import useSWR from "swr";
+import { useAuth } from "@clerk/nextjs";
 
 export function useUserRole() {
-  const { user, isLoaded } = useUser(); // Agregado: isLoaded
-
-  const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
-  const { data, error, isLoading } = useSWR(
-    isLoaded && user ? "/api/get-role" : null, // Usar isLoaded también
-    fetcher
-  );
+  const { isLoaded, sessionClaims } = useAuth();
+  const role = (sessionClaims as any)?.role as "STUDENT" | "PYME" | undefined;
 
   return {
-    role: data?.role,
-    isLoading: !isLoaded || isLoading, // Hasta que Clerk esté listo
-    error,
+    role: role ?? null,
+    isLoading: !isLoaded,
   };
 }

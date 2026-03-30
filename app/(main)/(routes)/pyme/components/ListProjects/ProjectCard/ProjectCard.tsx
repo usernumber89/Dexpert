@@ -1,42 +1,67 @@
 'use client'
 import Image from "next/image";
 import { ProjectCardProps } from "./ProjectCard.types";
-import { Target } from "lucide-react";
 import Actions from "./Actions/Actions";
 
+export function ProjectCard({ project }: ProjectCardProps) {
+  const { id, title, description, skills, imageUrl, status, isPublished } = project;
 
-export function ProjectCard(props:ProjectCardProps) {
-  const {project} = props;
-  const {id, title,description,skills, imageUrl,status} = project
-    return (
-    <div className="relative">
-        <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-        <div className="flex flex-col lg:flex-row gap-4 items-start">
-            <Image src={imageUrl|| "/lgo.png"} alt="Project" width={150} height={150} 
-            className="rounded-md max-w-52"/>
-            <div>
-                <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-medium">{title}</h2>
-                    {project.isPublished?
-                        <span className=" inline-block bg-emerald-100 text-emerald-600 text-xs font-medium px-2 py-1 rounded-md mt-1">Published :</span>: 
-                        <span className="inline-block bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-md mt-1">Not pusblished </span>
-                    }
-                </div>
-                <p className="text-gray-600 w-full max-w-lg line-clamp-3 text-sm">{description}</p>
-                <h1 className="text-gray-800 w-full max-w-lg text-sm flex items-center">
-                 <Target className="w-4 h-4 text-gray-800 mr-1" />
-                 Skills:
-                </h1>
+  return (
+    <div className="flex flex-col lg:flex-row gap-5 items-start justify-between p-5 rounded-xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm transition-all duration-200">
+      
+      {/* Image */}
+      <div className="flex-shrink-0">
+        <Image
+          src={imageUrl || "/lgo.png"}
+          alt={title}
+          width={100}
+          height={100}
+          className="rounded-xl object-cover w-24 h-24"
+        />
+      </div>
 
-            <ul className="list-disc list-inside mt-1 text-gray-700 text-sm">
-            {skills.split(",").map((skill, index) => (
-            <li key={index}>{skill.trim()}</li>
-                ))}
-            </ul>
-            </div>
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <h2 className="text-base font-semibold text-[#0A2243] truncate">{title}</h2>
+          {isPublished ? (
+            <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-xs font-medium px-2 py-0.5 rounded-full border border-emerald-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+              Published
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-400 text-xs font-medium px-2 py-0.5 rounded-full border border-gray-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block" />
+              Draft
+            </span>
+          )}
+          {status === "closed" && (
+            <span className="inline-flex items-center gap-1 bg-red-50 text-red-400 text-xs font-medium px-2 py-0.5 rounded-full border border-red-100">
+              Closed
+            </span>
+          )}
         </div>
-        <Actions projectId={id} projectStatus={status}></Actions>
+
+        <p className="text-sm text-gray-500 line-clamp-2 mb-3 leading-relaxed">
+          {description}
+        </p>
+
+        <div className="flex flex-wrap gap-1.5">
+          {skills.split(",").map((skill, i) => (
+            <span
+              key={i}
+              className="text-xs bg-blue-50 text-[#2196F3] px-2 py-0.5 rounded-full border border-blue-100"
+            >
+              {skill.trim()}
+            </span>
+          ))}
         </div>
-        </div>
-  )
+      </div>
+
+      {/* Actions */}
+      <div className="flex-shrink-0 w-full lg:w-36">
+        <Actions projectId={id} projectStatus={status} />
+      </div>
+    </div>
+  );
 }

@@ -33,7 +33,7 @@ model Pyme {
   logoUrl     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
+  purchases Purchase[]
   projects Project[]
 }
 
@@ -89,4 +89,15 @@ model Student {
   linkedIn     String?
   createdAt    DateTime      @default(now())
   applications Application[]
+}
+
+model Purchase {
+  id        String   @id @default(cuid())
+  userId    String
+  plan      String   // "BASIC" | "ASSISTED" | "PREMIUM"
+  stripeId  String   @unique
+  createdAt DateTime @default(now())
+  projectId String?
+
+  pyme      Pyme     @relation(fields: [userId], references: [userId])
 }

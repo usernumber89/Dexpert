@@ -1,100 +1,112 @@
 'use client'
-
 import axios from 'axios';
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { formSchema } from "./FormCreateProject.form"
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { formSchema } from "./FormCreateProject.form";
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { Sparkles } from 'lucide-react';
 
 export function FormCreateProject() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      prompt: "",
-      projectName: "",
-      description: "",
-      skills: ""
-    },
-  })
+    defaultValues: { prompt: "", projectName: "", description: "", skills: "" },
+  });
 
-  const { setValue, watch } = form
+  const { setValue, watch } = form;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const res = await axios.post("/api/project", values)
-      toast("Project created successfully")
+      const res = await axios.post("/api/project", values);
+      toast.success("Project created successfully");
       router.push(`/pyme/${res.data.id}`);
-    } catch (error) {
-      console.error(error)
+    } catch {
+      toast.error("Error creating project");
     }
-  }
+  };
 
   const generateIdea = async () => {
-    const rawPrompt = watch('prompt')
-    const prompt = rawPrompt?.trim() || ""
+    const prompt = watch('prompt')?.trim();
+    if (!prompt) { toast.error("Write a prompt first"); return; }
 
-    if (!prompt) {
-      alert("Please write a prompt first.")
-      return
-    }
-
-    setLoading(true)
+    setLoading(true);
     try {
       const res = await fetch('/api/GenerateIdea', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
-      })
-
-      const data = await res.json()
-
+      });
+      const data = await res.json();
       if (data.title && data.description) {
-        setValue('projectName', data.title)
-        setValue('description', data.description)
-        setValue('skills', data.skills)
+        setValue('projectName', data.title);
+        setValue('description', data.description);
+        setValue('skills', data.skills);
+        toast.success("Idea generated!");
       } else {
-        alert('Idea generation failed. Try another prompt.')
+        toast.error("Generation failed. Try another prompt.");
       }
-    } catch (err) {
-      console.error(err)
-      alert('Error contacting the Product Owner.')
+    } catch {
+      toast.error("Error contacting the AI.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
 
+        {/* AI Prompt */}
+        <div className="rounded-xl bg-blue-50 border border-blue-100 p-4 space-y-3">
+          <p className="text-xs font-medium text-[#2196F3] uppercase tracking-widest">
+            Generate with AI
+          </p>
+          <FormField
+            control={form.control}
+            name="prompt"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. I need a website for my bakery"
+                    className="bg-white text-gray-800 text-sm"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <button
+            type="button"
+            onClick={generateIdea}
+            disabled={loading}
+            className="flex items-center gap-2 text-sm font-medium text-[#2196F3] hover:text-[#0A2243] transition disabled:opacity-50"
+          >
+            <Sparkles size={14} />
+            {loading ? "Generating..." : "Generate project brief"}
+          </button>
+        </div>
+
+        {/* Manual fields */}
         <FormField
           control={form.control}
           name="projectName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-[#0A2342]">Project Name</FormLabel>
+              <FormLabel className="text-xs font-medium text-gray-600">Project name</FormLabel>
               <FormControl>
-                <Input
-                  className="text-gray-800" // o usa text-[#0A2342]
-                  placeholder="E-commerce"
-                  {...field}
-                />
+                <Input placeholder="E-commerce store" className="text-gray-800 text-sm" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -106,13 +118,9 @@ export function FormCreateProject() {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-[#0A2342]">Description</FormLabel>
+              <FormLabel className="text-xs font-medium text-gray-600">Description</FormLabel>
               <FormControl>
-                <Input
-                  className="text-gray-800"
-                  placeholder="My project is about..."
-                  {...field}
-                />
+                <Input placeholder="My project is about..." className="text-gray-800 text-sm" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -124,53 +132,22 @@ export function FormCreateProject() {
           name="skills"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-[#0A2342]">Required Skills</FormLabel>
+              <FormLabel className="text-xs font-medium text-gray-600">Required skills</FormLabel>
               <FormControl>
-                <Input
-                  className="text-gray-800"
-                  placeholder="React, UX, etc."
-                  {...field}
-                />
+                <Input placeholder="React, UX Design, etc." className="text-gray-800 text-sm" {...field} />
               </FormControl>
               <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="prompt"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-[#0A2342]">Write your idea or need for the AI</FormLabel>
-              <FormControl>
-                <Input
-                  className="text-gray-800"
-                  placeholder="e.g. I want an idea for a dessert business"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-              <Button
-                type="button"
-                variant="link"
-                className="text-blue-600 p-0 text-sm"
-                onClick={generateIdea}
-                disabled={loading}
-              >
-                {loading ? "Generating..." : "Generate with Product Owner AI"}
-              </Button>
             </FormItem>
           )}
         />
 
         <Button
-          className="bg-[#2196F3] hover:bg-[#0A2342] text-white"
           type="submit"
+          className="w-full bg-[#2196F3] hover:bg-[#0A2243] text-white text-sm"
         >
-          Publish Project
+          Publish project
         </Button>
       </form>
     </Form>
-  )
+  );
 }

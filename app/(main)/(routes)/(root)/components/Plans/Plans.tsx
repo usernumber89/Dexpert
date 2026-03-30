@@ -1,76 +1,159 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  CircleDollarSign,
-  Briefcase,
-  Gem,
-  LucideIcon,
-} from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { Briefcase, Package, Star } from "lucide-react";
 
-type Plan = {
-  icon: LucideIcon;
-  price: string;
-  title: string;
-  description: string;
-};
+type PlanKey = "BASIC" | "ASSISTED" | "PREMIUM";
 
-const plans: Plan[] = [
+const plans = [
   {
-    icon: CircleDollarSign,
+    key: "BASIC" as PlanKey,
+    name: "Basic",
     price: "$4.99",
-    title: "Basic Plan",
-    description: "Post a project on your own without complications.",
+    description: "Publish one project on your own — straightforward and fast.",
+    icon: Package,
+    iconBg: "#E6F1FB",
+    iconColor: "#378ADD",
+    dotColor: "#B5D4F4",
+    features: ["1 project listing", "Student applications", "Standard visibility"],
+    featured: false,
   },
   {
-    icon: Briefcase,
+    key: "ASSISTED" as PlanKey,
+    name: "Assisted",
     price: "$14.99",
-    title: "Assisted Plan",
-    description: "Get help writing and choosing the right people.",
+    description: "AI helps you write the project brief and recommends the best candidates.",
+    icon: Briefcase,
+    iconBg: "#E6F1FB",
+    iconColor: "#378ADD",
+    dotColor: "#378ADD",
+    features: ["Everything in Basic", "AI project brief writer", "Recommended candidates"],
+    featured: true,
   },
   {
-    icon: Gem,
+    key: "PREMIUM" as PlanKey,
+    name: "Premium",
     price: "$24.99",
-    title: "Premium Plan",
-    description: "Full support and project management.",
+    description: "Full support, top candidate access, and featured listing.",
+    icon: Star,
+    iconBg: "#E1F5EE",
+    iconColor: "#1D9E75",
+    dotColor: "#5DCAA5",
+    features: ["Everything in Assisted", "Top candidates only", "Featured listing", "Priority support"],
+    featured: false,
   },
 ];
 
 export function Plans() {
-  return (
-    <section className="min-h-screen  py-16 px-6 md:px-12 lg:px-24">
-      <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
-        Are you a PYME?
-      </h1>
-      <h1 className="text-md font-bold mb-6 text-center text-gray-500">
-        These are the plans we offer for you
-      </h1>
+  const { isSignedIn } = useUser();
+  const router = useRouter();
+  const [loading, setLoading] = useState<PlanKey | null>(null);
 
-      <div className="grid gap-10 md:grid-cols-3">
-        {plans.map((plan, idx) => {
+  const handleCheckout = async (plan: PlanKey) => {
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
+    }
+
+    setLoading(plan);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      console.error("Checkout error:", err);
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  return (
+    <section className="py-16 px-6 md:px-12 lg:px-24">
+      <div className="text-center mb-10">
+        <p className="text-xs font-semibold uppercase tracking-widest text-blue-500 mb-2">
+          For businesses
+        </p>
+        <h2 className="text-3xl font-semibold text-gray-900 mb-2">
+          Find talent that fits your needs
+        </h2>
+        <span className="text-sm text-gray-500">
+          One-time payment — no subscriptions, no hidden fees
+        </span>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3 max-w-4xl mx-auto">
+        {plans.map((plan) => {
           const Icon = plan.icon;
           return (
-            <Card
-              key={idx}
-              className="h-full flex flex-col p-6 rounded-2xl shadow-md hover:shadow-xl hover:scale-[1.02] transition-transform duration-300 ease-in-out"
+            <div
+              key={plan.key}
+              className={`flex flex-col gap-5 rounded-2xl p-7 bg-white ${
+                plan.featured
+                  ? "border-2 border-blue-400"
+                  : "border border-gray-100"
+              }`}
             >
-              <CardContent className="flex-1 flex flex-col justify-between">
-                <div className="flex flex-col items-center text-center space-y-4 mb-8">
-                  <Icon className="w-12 h-12 text-[#2196f3]" />
-                  <h2 className="text-2xl font-semibold text-gray-900">
-                    {plan.title}
-                  </h2>
-                  <p className="text-gray-600">{plan.description}</p>
-                  <div className="text-3xl font-bold text-[#2196f3] font-mono tabular-nums min-w-[90px]">
-                    {plan.price}
-                  </div>
+              <div className="flex justify-between items-start">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: plan.iconBg }}
+                >
+                  <Icon size={18} style={{ color: plan.iconColor }} />
                 </div>
-                <Button className="w-full mt-auto" aria-label={`Select ${plan.title}`}>
-                  Get Started
-                </Button>
-              </CardContent>
-            </Card>
+                {plan.featured && (
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-blue-50 text-blue-600">
+                    Most popular
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <p className="font-semibold text-gray-900 text-base">{plan.name}</p>
+                <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                  {plan.description}
+                </p>
+              </div>
+
+              <div className="font-mono text-3xl font-medium text-gray-900">
+                {plan.price}{" "}
+                <span className="text-sm font-sans font-normal text-gray-400">
+                  / project
+                </span>
+              </div>
+
+              <hr className="border-gray-100" />
+
+              <ul className="flex flex-col gap-2">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-gray-500">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ background: plan.dotColor }}
+                    />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => handleCheckout(plan.key)}
+                disabled={loading === plan.key}
+                className={`mt-auto w-full py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                  plan.featured
+                    ? "bg-blue-500 text-white hover:bg-blue-600"
+                    : "border border-gray-200 text-gray-800 hover:bg-gray-50"
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                {loading === plan.key ? "Redirecting..." : "Get started"}
+              </button>
+            </div>
           );
         })}
       </div>
