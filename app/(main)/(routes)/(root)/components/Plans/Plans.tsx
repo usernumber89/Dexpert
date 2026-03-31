@@ -53,7 +53,7 @@ export function Plans() {
 
   const handleCheckout = async (plan: PlanKey) => {
     if (!isSignedIn) {
-      router.push("/sign-in");
+      router.push("/sign-up");
       return;
     }
 
