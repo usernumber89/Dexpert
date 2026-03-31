@@ -17,7 +17,7 @@ export function CallToAction() {
       <p className="text-lg sm:text-xl mb-8 max-w-2xl mx-auto text-white/80">
         Whether you're a young talent looking for experience or a small business needing real solutions — Dexpert is your bridge to growth.
       </p>
-      
+      <a
         href={href}
         className="inline-block bg-[#2196F3] text-white font-semibold px-8 py-3 rounded-xl hover:bg-blue-400 transition"
       >

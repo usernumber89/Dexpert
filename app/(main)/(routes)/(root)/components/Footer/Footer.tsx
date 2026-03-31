@@ -26,14 +26,14 @@ export function Footer() {
             Follow us
           </p>
           <div className="flex gap-6 justify-center">
-            
+            <a
               href="mailto:dexpertwork@gmail.com"
               className="flex items-center gap-2 text-sm text-white/70 hover:text-white transition"
             >
               <MailIcon size={16} />
               dexpertwork@gmail.com
             </a>
-            
+            <a
               href="https://www.instagram.com/dexpert.sv"
               target="_blank"
               rel="noopener noreferrer"
