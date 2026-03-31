@@ -7,38 +7,37 @@ export async function GET() {
 
     if (!userId) {
       console.warn("[GET-ROLE] Usuario no autenticado");
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        statusText: "Unauthorized",
-      });
-    }
-
-    console.log("[GET-ROLE] userId:", userId);
-
-    const user = await prisma.userProfile.findUnique({
-      where: { userId },
-    });
-
-    if (!user) {
-      console.warn("[GET-ROLE] No se encontró perfil para userId:", userId);
       return new Response(
-        JSON.stringify({ error: "User profile not found", role: null }),
-        {
-          status: 404,
-          statusText: "User profile not found",
-        }
+        JSON.stringify({ error: "Unauthorized", role: null }),
+        { status: 401 }
       );
     }
 
-    console.log("[GET-ROLE] Role:", user.role);
+    console.log("[GET-ROLE] Buscando role para userId:", userId);
+
+    const user = await prisma.userProfile.findUnique({
+      where: { userId },
+      select: { role: true },
+    });
+
+    if (!user || !user.role) {
+      console.warn("[GET-ROLE] No se encontró perfil o role para userId:", userId);
+      return new Response(
+        JSON.stringify({ error: "User profile not found", role: null }),
+        { status: 404 }
+      );
+    }
+
+    console.log("[GET-ROLE] Role encontrado:", user.role);
 
     return new Response(JSON.stringify({ role: user.role }), {
       status: 200,
+      headers: { "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("[GET-ROLE] Error inesperado:", error);
+    console.error("[GET-ROLE] Error inesperado:", error.message);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: "Internal server error", role: null }),
       { status: 500 }
     );
   }

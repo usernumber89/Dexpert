@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "postinstall": "prisma generate",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --config eslint.config.mjs"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --config eslint.config.mjs",
+    "db:sync-users": "ts-node scripts/syncExistingUsers.ts"
   },
   "dependencies": {
     "@clerk/clerk-js": "^5.68.0",
