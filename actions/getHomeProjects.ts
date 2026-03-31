@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { Project } from "@/generated/prisma";
+import { Project } from "@prisma/client";
 
 export const getHomeProjects = async (): Promise<Project[] | null> => {
   try {

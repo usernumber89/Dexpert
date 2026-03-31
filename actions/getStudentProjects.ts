@@ -1,4 +1,4 @@
-import { Project, Pyme } from "@/generated/prisma";
+import { Project, Pyme } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
 export const getStudentProjects = async (): Promise<(Project & { pyme: { name: string; logoUrl: string | null } | null })[] | null> => {

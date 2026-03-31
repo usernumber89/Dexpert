@@ -1,4 +1,4 @@
-import { Project } from "@/generated/prisma"
+import { Project } from "@prisma/client"
 
 export type ListProjectsProps = {
     title : string
