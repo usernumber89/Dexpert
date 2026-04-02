@@ -7,16 +7,33 @@ export async function syncUserWithDatabase(role: "STUDENT" | "PYME") {
 
   if (!userId) throw new Error("No user logged in");
 
+  console.log("[syncUserWithDatabase] Iniciando sincronización para userId:", userId, "role:", role);
+
   // 1. Guardar en Prisma (igual que antes)
-  await prisma.userProfile.upsert({
-    where: { userId },
-    update: {},
-    create: { userId, role },
-  });
+  try {
+    const result = await prisma.userProfile.upsert({
+      where: { userId: userId }, // ID de Clerk
+      update: { role: role },
+      create: {
+        userId: userId, // ID de Clerk
+        role: role,
+      },
+    });
+    console.log("[syncUserWithDatabase] Guardado en Prisma exitosamente:", result);
+  } catch (error) {
+    console.error("[syncUserWithDatabase] Error al guardar en Prisma:", error);
+    throw error;
+  }
 
   // 2. Escribir rol en Clerk public metadata → viaja en JWT
-  const clerk = await clerkClient();
-  await clerk.users.updateUserMetadata(userId, {
-    publicMetadata: { role },
-  });
+  try {
+    const clerk = await clerkClient();
+    await clerk.users.updateUserMetadata(userId, {
+      publicMetadata: { role },
+    });
+    console.log("[syncUserWithDatabase] Metadata de Clerk actualizada exitosamente");
+  } catch (error) {
+    console.error("[syncUserWithDatabase] Error al actualizar Clerk:", error);
+    throw error;
+  }
 }

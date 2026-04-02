@@ -8,7 +8,9 @@ const isPublicRoute = createRouteMatcher([
   '/onboarding(.*)',
   '/api/create-user(.*)',
   '/api/uploadthing(.*)',
-  '/api/get-role(.*)', // <--- IMPORTANTE: Debe ser pública para el fetch del middleware
+  '/api/get-role(.*)',
+  '/api/sync-role(.*)',
+  '/api/debug-role(.*)',
   '/api/project-analyzer(.*)',
   '/terms(.*)',
   '/privacy(.*)',
@@ -22,78 +24,90 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
   const url = req.nextUrl.clone();
   
-  // 1. SI ES UNA RUTA DE API, NO REDIRIGIR NUNCA (Evita bucles en fetch)
+  console.log("[MIDDLEWARE] Path:", req.nextUrl.pathname, "userId:", userId);
+  
+  // 1. REGLA DE ORO: Las APIs no se redireccionan para evitar loops de fetch
   if (req.nextUrl.pathname.startsWith('/api')) {
     return NextResponse.next();
   }
 
-  let role = (sessionClaims as any)?.publicMetadata?.role as string | undefined;
-
-  // 2. Rutas públicas: dejar pasar
+  // 2. Rutas públicas: Dejar pasar libremente
   if (isPublicRoute(req)) {
-    if (userId && role && (req.nextUrl.pathname.startsWith('/sign-in') || req.nextUrl.pathname.startsWith('/sign-up'))) {
-      url.pathname = role === 'STUDENT' ? '/student' : '/pyme';
-      return NextResponse.redirect(url);
-    }
-    return NextResponse.next();
+    console.log("[MIDDLEWARE] Ruta pública permitida");
+    return NextResponse.next(); 
   }
 
-  // 3. Si no está autenticado y no es pública
+  // 3. Protección de autenticación: Si no hay userId, al login
   if (!userId) {
+    console.log("[MIDDLEWARE] Sin userId, redirigiendo a sign-in");
     url.pathname = '/sign-in';
     return NextResponse.redirect(url);
   }
 
-  // 4. Intento de recuperar rol si no está en claims
+  // 4. Obtener rol de los claims (JWT)
+  let role = (sessionClaims as any)?.publicMetadata?.role as string | undefined;
+  console.log("[MIDDLEWARE] Rol desde JWT:", role);
+
+  // 5. Si no está en el JWT, intentamos fetch a la API interna
   if (!role) {
+    console.log("[MIDDLEWARE] No hay rol en JWT, intentando fetch a /api/get-role");
     try {
       const baseUrl = req.nextUrl.origin;
       const response = await fetch(`${baseUrl}/api/get-role`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userId, // Enviamos el ID para que la API sepa quién es
-          'cookie': req.headers.get('cookie') || '', // PASAR COOKIES ES VITAL
+          'cookie': req.headers.get('cookie') || '', 
         },
       });
 
       if (response.ok) {
         const data = await response.json();
-        role = data.role;
+        role = data.role; // Puede ser null si es usuario nuevo
+        console.log("[MIDDLEWARE] Rol desde API:", role);
+      } else {
+        console.log("[MIDDLEWARE] API retornó status:", response.status);
       }
     } catch (error) {
-      console.error('[Middleware] Error al obtener rol:', error);
+      console.error('[MIDDLEWARE] Error al obtener rol:', error);
     }
   }
 
-  // 5. LÓGICA DE REDIRECCIÓN FINAL (Solo para páginas, no APIs)
+  // 6. LÓGICA DE REDIRECCIÓN BASADA EN ROL
   
-  // Si después de todo no hay rol -> Onboarding (si no está ya ahí)
+  // Si NO tiene rol: mandarlo a onboarding (si no está ya ahí)
   if (!role) {
-    if (!isOnboardingRoute(req)) {
-      url.pathname = '/onboarding';
-      return NextResponse.redirect(url);
+    console.log("[MIDDLEWARE] Sin rol asignado");
+    if (isOnboardingRoute(req)) {
+      console.log("[MIDDLEWARE] Ya está en onboarding, permitiendo acceso");
+      return NextResponse.next();
     }
-    return NextResponse.next();
+    console.log("[MIDDLEWARE] Redirigiendo a onboarding");
+    url.pathname = '/onboarding';
+    return NextResponse.redirect(url);
   }
 
-  // Si tiene rol, no puede estar en onboarding
+  // Si TIENE rol: no puede entrar a onboarding
   if (isOnboardingRoute(req)) {
+    console.log("[MIDDLEWARE] Usuario con rol intenta entrar a onboarding, redirigiendo");
     url.pathname = role === 'STUDENT' ? '/student' : '/pyme';
     return NextResponse.redirect(url);
   }
 
-  // Protección de rutas por rol
+  // 7. PROTECCIÓN DE RUTAS POR ROL
   if (isStudentRoute(req) && role !== 'STUDENT') {
+    console.log("[MIDDLEWARE] Usuario PYME intenta acceder a /student, redirigiendo");
     url.pathname = '/pyme';
     return NextResponse.redirect(url);
   }
 
   if (isPymeRoute(req) && role !== 'PYME') {
+    console.log("[MIDDLEWARE] Usuario STUDENT intenta acceder a /pyme, redirigiendo");
     url.pathname = '/student';
     return NextResponse.redirect(url);
   }
 
+  console.log("[MIDDLEWARE] Acceso permitido como:", role);
   return NextResponse.next();
 });
 

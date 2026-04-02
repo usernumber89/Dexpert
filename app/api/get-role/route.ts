@@ -1,44 +1,34 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
     const { userId } = await auth();
 
+    // Si no hay sesión de Clerk, devolvemos null sin error 401
     if (!userId) {
-      console.warn("[GET-ROLE] Usuario no autenticado");
-      return new Response(
-        JSON.stringify({ error: "Unauthorized", role: null }),
-        { status: 401 }
-      );
+      return NextResponse.json({ role: null }, { status: 200 });
     }
 
-    console.log("[GET-ROLE] Buscando role para userId:", userId);
-
+    // Buscamos en tu tabla de perfiles
+    // Nota: Asegúrate que el modelo sea 'userProfile' o 'User' según tu schema.prisma
     const user = await prisma.userProfile.findUnique({
-      where: { userId },
+      where: { userId: userId },
       select: { role: true },
     });
 
-    if (!user || !user.role) {
-      console.warn("[GET-ROLE] No se encontró perfil o role para userId:", userId);
-      return new Response(
-        JSON.stringify({ error: "User profile not found", role: null }),
-        { status: 404 }
-      );
-    }
+    // Si el usuario no existe en la DB (pero sí en Clerk), devolvemos null
+    // Esto es vital para que el usuario pueda entrar a /onboarding
+    return NextResponse.json({ 
+      role: user?.role || null 
+    }, { status: 200 });
 
-    console.log("[GET-ROLE] Role encontrado:", user.role);
-
-    return new Response(JSON.stringify({ role: user.role }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
   } catch (error: any) {
-    console.error("[GET-ROLE] Error inesperado:", error.message);
-    return new Response(
-      JSON.stringify({ error: "Internal server error", role: null }),
-      { status: 500 }
-    );
+    console.error("[GET-ROLE API ERROR]:", error.message);
+    return NextResponse.json({ 
+      role: null, 
+      error: "Internal Server Error" 
+    }, { status: 500 });
   }
 }

@@ -1,113 +1,81 @@
-// app/sign-up/page.tsx
 "use client";
 
 import { SignUp } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function SignUpPage() {
   const [role, setRole] = useState<string | null>(null);
-  const [checking, setChecking] = useState(true);
-  const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // First, check if a role is already stored in localStorage (from a previous selection attempt)
+    // Solo verificamos localStorage, no necesitamos la API aquí
+    // porque si el usuario está en esta página es porque NO tiene cuenta.
     const storedRole = localStorage.getItem("selectedRole");
     if (storedRole === "STUDENT" || storedRole === "PYME") {
       setRole(storedRole);
-      setChecking(false); // We have a stored role, no need to fetch
-      return;
     }
+    setIsReady(true);
+  }, []);
 
-    // If no role in localStorage, then check the user's role from the backend
-    const checkUserRole = async () => {
-      try {
-        const res = await fetch("/api/get-role");
-        const data = await res.json();
+  if (!isReady) return null; // Evita parpadeos (hydration)
 
-        if (data.role === "STUDENT") {
-          router.push("/student");
-          return; // Exit early as user is redirected
-        } else if (data.role === "PYME") {
-          router.push("/pyme");
-          return; // Exit early as user is redirected
-        } else {
-          // No role from backend and no stored role, so allow selection
-          setChecking(false);
-        }
-      } catch (err) {
-        console.error("Error checking role:", err);
-        setChecking(false);
-      }
-    };
-
-    checkUserRole();
-  }, [router]);
-
-  // Show a loading spinner while checking the user's role or stored role
-  if (checking) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 border-t-4 border-b-4 border-blue-500 rounded-full animate-spin"></div>
-          <p className="mt-4 text-lg text-gray-600">Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If no role is selected yet, prompt the user to choose
-  // This is the key change: this block now executes BEFORE the Clerk form
+  // PASO 1: Selección de Rol
   if (!role) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md text-center border border-gray-200">
-          <h1 className="text-4xl font-extrabold text-gray-800 mb-6">
-            Welcome!
-          </h1>
-          <p className="text-lg text-gray-600 mb-8">
-            Please select your role to continue.
-          </p>
-          <select
-            className="block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg text-gray-700 bg-white cursor-pointer transition duration-300 ease-in-out hover:border-blue-400"
-            defaultValue=""
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === "STUDENT" || value === "PYME") {
-                localStorage.setItem("selectedRole", value); // Store the selected role
-                setRole(value); // Update state to trigger Clerk form display
-              }
-            }}
-          >
-            <option value="" disabled>
-              Choose your role
-            </option>
-            <option value="STUDENT">Student</option>
-            <option value="PYME">Pyme</option>
-          </select>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center border border-slate-100">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">¡Bienvenido!</h1>
+          <p className="text-slate-500 mb-8">¿Cómo quieres usar Dexpert?</p>
+          
+          <div className="space-y-4">
+            <button 
+              onClick={() => {
+                localStorage.setItem("selectedRole", "STUDENT");
+                setRole("STUDENT");
+              }}
+              className="w-full p-4 text-left border-2 border-slate-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+            >
+              <span className="block font-bold text-slate-700 group-hover:text-blue-700">Soy Estudiante</span>
+              <span className="text-sm text-slate-500">Busco proyectos para ganar experiencia.</span>
+            </button>
+
+            <button 
+              onClick={() => {
+                localStorage.setItem("selectedRole", "PYME");
+                setRole("PYME");
+              }}
+              className="w-full p-4 text-left border-2 border-slate-100 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group"
+            >
+              <span className="block font-bold text-slate-700 group-hover:text-blue-700">Soy una PYME</span>
+              <span className="text-sm text-slate-500">Busco talento para digitalizar mi negocio.</span>
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Once a role is selected (either from localStorage or by user interaction),
-  // display the Clerk SignUp component
+  // PASO 2: Mostrar Clerk SignUp
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md text-center border border-gray-200">
-       
-        <p className="text-lg text-gray-600 mb-6">
-          Signing up as:{" "}
-          <strong className="text-blue-600 capitalize">
-            {role.toLowerCase()}
-          </strong>
-        </p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-4 text-center">
+          <button 
+            onClick={() => {
+              localStorage.removeItem("selectedRole");
+              setRole(null);
+            }}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ← Cambiar rol ({role})
+          </button>
+        </div>
+        
         <SignUp
           path="/sign-up"
-          // Pass the selected role as a query parameter or use Clerk's metadata if applicable
-          // For now, we'll assume /onboarding can handle reading the role from local storage or
-          // you'll set up Clerk metadata in a webhook or custom action.
-          forceRedirectUrl={`/onboarding?role=${role.toLowerCase()}`}
+          routing="path"
+          signInUrl="/sign-in"
+          forceRedirectUrl={`/onboarding?role=${role}`}
         />
       </div>
     </div>
